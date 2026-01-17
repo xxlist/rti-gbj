@@ -5,8 +5,19 @@
 (require '[clojure.java.io :as io])
 (require '[babashka.http-client :as http])
 (require '[taoensso.timbre :as log])
+(import '[java.time Instant])
 
 (set! *warn-on-reflection* true)
+
+(defn rfc1123-datetime-formatted
+  [timestamp]
+  (->
+   (Instant/ofEpochSecond timestamp)
+   (.atZone (java.time.ZoneId/of "UTC"))
+   (.format  java.time.format.DateTimeFormatter/RFC_1123_DATE_TIME)))
+
+(comment
+  (rfc1123-datetime-formatted 1678886400))
 
 (defn replace-and-char
   "Replace & to &amp;"
@@ -67,27 +78,33 @@
 
 (defn write-items
   [writer items cover]
-  (doseq [[item-url item-title] items]
-    (doto writer
-      (.write "<item>")
-      (.write "<guid>")
-      (.write item-title)
-      (.write "</guid>")
-      (.write "<title>")
-      (write-cdata item-title)
-      (.write "</title>")
-      (.write "<description>")
-      (write-cdata item-title)
-      (.write "</description>")
-      (.write "<pubDate>")
-      (.write "")
-      (.write "</pubDate>")
-      (.write "<itunes:duration>")
-      (.write "")
-      (.write "</itunes:duration>")
-      (.write (format "<itunes:image href=\"%s\"/>" (or (some-> cover replace-and-char) "")))
-      (.write (format "<enclosure url=\"%s\" type=\"audio/mp3\"/>" (replace-and-char item-url)))
-      (.write "</item>")))
+  (let [timestamp (volatile!
+                   (.getEpochSecond (Instant/now)))]
+
+    (doseq [[item-url item-title] items]
+      (doto writer
+        (.write "<item>")
+        (.write "<guid>")
+        (.write "")
+        (.write "</guid>")
+        (.write "<title>")
+        (write-cdata item-title)
+        (.write "</title>")
+        (.write "<description>")
+        (write-cdata item-title)
+        (.write "</description>")
+        (.write "<pubDate>")
+        (.write (rfc1123-datetime-formatted @timestamp))
+        (.write "</pubDate>")
+        (.write "<itunes:duration>")
+        (.write "")
+        (.write "</itunes:duration>")
+        (.write (format "<itunes:image href=\"%s\"/>" (or (some-> cover replace-and-char) "")))
+        (.write (format "<enclosure url=\"%s\" type=\"audio/mp3\"/>" (replace-and-char item-url)))
+        (.write "</item>"))
+
+      (vreset! timestamp (inc @timestamp))))
+
   writer)
 
 (defn gen-rss
