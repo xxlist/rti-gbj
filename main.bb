@@ -71,7 +71,7 @@
     (doto writer
       (.write "<item>")
       (.write "<guid>")
-      (.write "")
+      (.write item-title)
       (.write "</guid>")
       (.write "<title>")
       (write-cdata item-title)
