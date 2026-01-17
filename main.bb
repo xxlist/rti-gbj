@@ -9,6 +9,10 @@
 
 (set! *warn-on-reflection* true)
 
+(defn current-timestamp
+  []
+  (.getEpochSecond (Instant/now)))
+
 (defn rfc1123-datetime-formatted
   [timestamp]
   (->
@@ -16,16 +20,10 @@
    (.atZone (java.time.ZoneId/of "UTC"))
    (.format  java.time.format.DateTimeFormatter/RFC_1123_DATE_TIME)))
 
-(comment
-  (rfc1123-datetime-formatted 1678886400))
-
 (defn replace-and-char
   "Replace & to &amp;"
   [s]
   (str/replace s "&" "&amp;"))
-
-(comment
-  (replace-and-char "https://abc.xyz?foo=1&bar=2&baz=3"))
 
 (defn write-cdata
   "Write [data] wrapped by [CDATA] into [writer]"
@@ -45,10 +43,13 @@
   "Fetch html content by the given url"
   [^String url]
   (log/info "Fetching" url)
-  (-> (http/get url {:throw true :header base-header})
+  (-> (http/get url
+                {:throw true :header base-header})
       :body))
 
-(defmulti extract (fn [tag html] tag))
+(defmulti extract
+  "extract data from html"
+  (fn [tag html] tag))
 
 (defmethod extract :default
   [_ _]
@@ -78,10 +79,10 @@
 
 (defn write-items
   [writer items cover]
-  (let [timestamp (volatile!
-                   (.getEpochSecond (Instant/now)))]
+  (let [timestamp (volatile! (current-timestamp))]
 
     (doseq [[item-url item-title] items]
+
       (doto writer
         (.write "<item>")
         (.write "<guid>")
