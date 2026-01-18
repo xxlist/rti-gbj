@@ -33,18 +33,14 @@
     (.write data)
     (.write " ]]>")))
 
-(def base-header {:accept "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
-                  :accept-encoding "gzip, deflate, br"
-                  :accept-language "zh-CN,zh-HK;q=0.9,zh;q=0.8"
-                  :cache-control "max-age=0"
-                  :user-agent "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"})
+(def base-headers {:user-agent "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"})
 
 (defn ^String url->html
   "Fetch html content by the given url"
   [^String url]
   (log/info "Fetching" url)
   (-> (http/get url
-                {:throw true :header base-header})
+                {:throw true :headers base-headers})
       :body))
 
 (defmulti extract
